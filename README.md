@@ -21,8 +21,11 @@ He has prepared an entity relationship diagram of his database design but requir
 
 ### Analysis
 
+### SECTION A
+
 ```
---1.How many pizzas were ordered?
+--1. How many pizzas were ordered?
+
 SELECT COUNT([pizza_id]) AS Total_orders
 FROM [pizza_runner].[customer_orders]
 
@@ -31,7 +34,8 @@ FROM [pizza_runner].[customer_orders]
 
 
 ```
---2.How many unique customer orders were made?
+--2. How many unique customer orders were made?
+
 SELECT COUNT(DISTINCT [order_id]) Unique_orders
 FROM[pizza_runner].[customer_orders]
 
@@ -40,7 +44,8 @@ FROM[pizza_runner].[customer_orders]
 ![Screenshot (199)](https://user-images.githubusercontent.com/109418747/194527396-a7ad2799-5d93-4b57-9779-1ad9a092b8fb.png)
 
 ```
---How many successful orders were delivered by each runner?
+--3. How many successful orders were delivered by each runner?
+
 SELECT COUNT([order_id]) Orders,[runner_id]
 FROM [pizza_runner].[runner_orders]
 WHERE  [pickup_time] != 'null'
@@ -53,7 +58,7 @@ GROUP BY [runner_id];
 
 ```
 
---How many of each type of pizza was delivered?
+--4.How many of each type of pizza was delivered?
 
 SELECT a.[pizza_id],
       COUNT (b.order_id) count
@@ -70,6 +75,7 @@ GROUP BY a.pizza_id;
 ```
 
 --5.How many Vegetarian and Meatlovers were ordered by each customer?
+
 WITH pizza AS(SELECT [order_id],[customer_id],[pizza_id],
 CASE WHEN [pizza_id]= 1 THEN 1
 ELSE 0 END meatlover,
@@ -86,7 +92,8 @@ GROUP BY  [customer_id]
 ![Screenshot (211)](https://user-images.githubusercontent.com/109418747/194530334-5123cc5a-077a-471e-93f1-70864d435ea1.png)
 
 ```
-    --6.What was the maximum number of pizzas delivered in a single order?
+    --6. What was the maximum number of pizzas delivered in a single order?
+    
      SELECT b.[order_id], count(a.[pizza_id]) count
      FROM [pizza_runner].[customer_orders] a
      LEFT JOIN [pizza_runner].[runner_orders] b
@@ -100,7 +107,8 @@ GROUP BY  [customer_id]
 
 
 ```
- --7.For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+ --7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+ 
 SELECT a.customer_id,
       count( a.[pizza_id]) delivered_pizza,
       SUM( CASE WHEN [exclusions] ='' AND [extras] = '' THEN 1
@@ -127,7 +135,8 @@ GROUP BY a.customer_id;
 
 ```
 
---8.How many pizzas were delivered that had both exclusions and extras?
+--8. How many pizzas were delivered that had both exclusions and extras?
+
 WITH delivered_pizza AS (SELECT b.order_id,
        a.pizza_id,
        CASE WHEN [exclusions] ='' AND [extras] = '' THEN 0
@@ -152,7 +161,8 @@ WHERE delivered_with_exclusions_extras = 1;
 
 
 ```
- --9.What was the total volume of pizzas ordered for each hour of the day?
+ --9. What was the total volume of pizzas ordered for each hour of the day?
+ 
 SELECT DATEPART(hour, CAST(order_time AS DATETIME2)),
 COUNT(*) AS pizza_ordered
 FROM pizza_runner.customer_orders
@@ -166,7 +176,8 @@ ORDER BY pizza_ordered DESC;
 
 
 ```
---What was the volume of orders for each day of the week?
+--10. What was the volume of orders for each day of the week?
+
 SELECT DATEPART(day, CAST(order_time AS DATETIME2)) Day_of_week,
 COUNT(*) AS pizza_ordered
 FROM pizza_runner.customer_orders
@@ -177,8 +188,11 @@ ORDER BY pizza_ordered DESC;
 ![Screenshot (208)](https://user-images.githubusercontent.com/109418747/194529044-4bb1015c-663d-4e16-bf64-700a3216c123.png)
 
 
+### SECTION B
+
 ```
---3. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+--1. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+
 WITH time AS (SELECT  CAST(b.order_time AS datetime2) order_time,
 a.runner_id,
 CASE WHEN a.[pickup_time] ='null' THEN NULL 
@@ -199,7 +213,7 @@ GROUP BY runner_id
 
 ```
 
---What was the average speed for each runner for each delivery and do you notice any trend for these values?
+--2. What was the average speed for each runner for each delivery and do you notice any trend for these values?
 
 SELECT [order_id],
        [runner_id],
@@ -218,7 +232,7 @@ GROUP BY [order_id],
 ![Screenshot (215)](https://user-images.githubusercontent.com/109418747/194886962-91ac0048-10b3-41ea-8a22-fc7bea558b2a.png)
          
 ```
- --What was the difference between the longest and shortest delivery times for all orders?
+ --3. What was the difference between the longest and shortest delivery times for all orders?
 
 SELECT  MAX(CAST(SUBSTRING([duration],1,2) AS INT))- MIN (CAST(SUBSTRING([duration],1,2) AS INT)) time_difference
 FROM
@@ -231,7 +245,7 @@ WHERE [duration] !='null'
 
 ```
 
---What was the average distance travelled for each customer?
+--4. What was the average distance travelled for each customer?
 
 SELECT  b.[customer_id], avg(CAST(SUBSTRING(a.[distance],1,2) AS INT)) average_distance
 FROM
@@ -245,4 +259,50 @@ GROUP BY b.[customer_id];
 ![Screenshot (217)](https://user-images.githubusercontent.com/109418747/194887586-26f11788-09bf-466e-b868-adee37098287.png)
 
 
+```
+
+--5. Is there any relationship between the number of pizzas and how long the order takes to prepare?
+
+WITH time AS (SELECT  CAST(b.order_time AS datetime2) order_time,
+a.[order_id],
+count(b.[pizza_id]) count,
+CASE WHEN a.[pickup_time] ='null' THEN NULL 
+ELSE CAST(a.[pickup_time] AS DATETIME) END pick_time
+FROM [pizza_runner].[runner_orders] a
+LEFT JOIN [pizza_runner].[customer_orders] b
+ON a.[order_id]= b.[order_id]
+group by a.[order_id],  order_time,CASE WHEN a.[pickup_time] ='null' THEN NULL 
+ELSE CAST(a.[pickup_time] AS DATETIME) END)
+SELECT [order_id], count,
+AVG(DATEDIFF(minute,order_time, pick_time)) average_time_in_mins
+FROM time
+WHERE pick_time IS NOT NULL
+GROUP BY [order_id],count;
+
+```
+
+![Screenshot (219)](https://user-images.githubusercontent.com/109418747/194907690-1f43368f-4192-46bb-80c0-24e67d27e664.png)
+
+
+```
+
+--6. What is the successful delivery percentage for each runner?
+
+WITH successful_count AS(
+SELECT [runner_id],
+       COUNT([order_id]) count
+FROM [pizza_runner].[runner_orders]
+WHERE [pickup_time] != 'null'
+GROUP BY [runner_id])
+
+ SELECT a.[runner_id], CONCAT( ((a.count/ b.all_count)*100),'%')
+ FROM successful_count a
+ LEFT JOIN
+  (SELECT CAST(COUNT(*) AS FLOAT) all_count,[runner_id]
+FROM [pizza_runner].[runner_orders]
+GROUP BY [runner_id]) b
+ON a.runner_id= b.runner_id
+```
+
+![Screenshot (218)](https://user-images.githubusercontent.com/109418747/194908063-582352c8-5e50-4cf3-a029-e067ef2f9ea1.png)
 
