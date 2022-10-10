@@ -177,3 +177,22 @@ ORDER BY pizza_ordered DESC;
 ![Screenshot (208)](https://user-images.githubusercontent.com/109418747/194529044-4bb1015c-663d-4e16-bf64-700a3216c123.png)
 
 
+```
+--3. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+WITH time AS (SELECT  CAST(b.order_time AS datetime2) order_time,
+a.runner_id,
+CASE WHEN a.[pickup_time] ='null' THEN NULL 
+ELSE CAST(a.[pickup_time] AS DATETIME) END pick_time
+FROM [pizza_runner].[runner_orders] a
+LEFT JOIN [pizza_runner].[customer_orders] b
+ON a.[order_id]= b.[order_id])
+SELECT runner_id,
+AVG(DATEDIFF(minute,order_time, pick_time)) average_time_in_mins
+FROM time
+WHERE pick_time IS NOT NULL
+GROUP BY runner_id
+
+```
+
+![Screenshot (214)](https://user-images.githubusercontent.com/109418747/194857427-e9f3f8c9-a948-4f82-bf91-aa4c0ed1f9dd.png)
+
