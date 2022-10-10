@@ -196,3 +196,53 @@ GROUP BY runner_id
 
 ![Screenshot (214)](https://user-images.githubusercontent.com/109418747/194857427-e9f3f8c9-a948-4f82-bf91-aa4c0ed1f9dd.png)
 
+
+```
+
+--What was the average speed for each runner for each delivery and do you notice any trend for these values?
+
+SELECT [order_id],
+       [runner_id],
+      ROUND(AVG(distance/hours),2) average_speed
+FROM(
+SELECT [order_id],
+[runner_id],
+CAST(SUBSTRING([distance],1,2) AS INT) distance,
+CAST(SUBSTRING([duration],1,2) AS INT)/60.0 AS hours
+FROM [pizza_runner].[runner_orders]
+WHERE [pickup_time] != 'null') Speed
+GROUP BY [order_id],
+         [runner_id]
+```
+         
+![Screenshot (215)](https://user-images.githubusercontent.com/109418747/194886962-91ac0048-10b3-41ea-8a22-fc7bea558b2a.png)
+         
+```
+ --What was the difference between the longest and shortest delivery times for all orders?
+
+SELECT  MAX(CAST(SUBSTRING([duration],1,2) AS INT))- MIN (CAST(SUBSTRING([duration],1,2) AS INT)) time_difference
+FROM
+[pizza_runner].[runner_orders] 
+WHERE [duration] !='null'
+
+```
+
+![Screenshot (216)](https://user-images.githubusercontent.com/109418747/194887282-c416d8f5-e8d1-4ff9-92bd-df6f53f2d522.png)
+
+```
+
+--What was the average distance travelled for each customer?
+
+SELECT  b.[customer_id], avg(CAST(SUBSTRING(a.[distance],1,2) AS INT)) average_distance
+FROM
+[pizza_runner].[runner_orders] a
+LEFT JOIN [pizza_runner].[customer_orders] b
+ON a.order_id= b.order_id
+WHERE a.distance !='null'
+GROUP BY b.[customer_id];
+```
+
+![Screenshot (217)](https://user-images.githubusercontent.com/109418747/194887586-26f11788-09bf-466e-b868-adee37098287.png)
+
+
+
