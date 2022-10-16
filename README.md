@@ -306,3 +306,79 @@ ON a.runner_id= b.runner_id
 
 ![Screenshot (218)](https://user-images.githubusercontent.com/109418747/194908063-582352c8-5e50-4cf3-a029-e067ef2f9ea1.png)
 
+### SECTION C
+
+```
+----1. What are the standard ingredients for each pizza?
+SELECT a. [pizza_id], b.topping_name
+ FROM(SELECT [pizza_id] , value [toppings]  
+FROM   [pizza_runner].[pizza_recipes]
+    CROSS APPLY STRING_SPLIT([toppings] , ',')) a 
+LEFT JOIN [pizza_runner].[pizza_toppings] b
+ON a.toppings =b.topping_id
+
+```
+
+![Screenshot (220)](https://user-images.githubusercontent.com/109418747/195984710-6492f8f1-d22b-48e4-9d91-1b3b43995221.png)
+
+```
+--2. What was the most commonly added extra?
+WITH extra AS (
+SELECT a. [pizza_id], b.topping_name
+ FROM(   SELECT [pizza_id] , value [toppings]  
+FROM   [pizza_runner].[pizza_recipes]
+    CROSS APPLY STRING_SPLIT([toppings] , ',') ) a 
+LEFT JOIN [pizza_runner].[pizza_toppings] b
+ON a.toppings =b.topping_id
+)
+SELECT a.[pizza_id], a.topping_name, 
+CASE WHEN b.extras IN( ' ', 'null') THEN NULL
+     ELSE b.extras END  No_of_extras
+INTO #ext
+FROM extra a
+LEFT JOIN [pizza_runner].[customer_orders] b
+ON a.pizza_id = b.pizza_id;
+
+SELECT *
+FROM #ext;
+
+SELECT topping_name, COUNT( CAST(No_of_extras AS INT)) extra
+FROM (SELECT  pizza_id,CAST(topping_name AS varchar(MAX)) AS topping_name,
+value No_of_extras
+FROM #ext
+CROSS APPLY STRING_SPLIT(No_of_extras, ',')
+where No_of_extras is not null) a
+GROUP BY topping_name
+ORDER BY COUNT( CAST(No_of_extras AS INT)) DESC
+```
+
+```
+---3. What was the most common exclusion?
+WITH exclusion AS (
+SELECT a. [pizza_id], b.topping_name
+ FROM(   SELECT [pizza_id] , value [toppings]  
+FROM   [pizza_runner].[pizza_recipes]
+    CROSS APPLY STRING_SPLIT([toppings] , ',') ) a 
+LEFT JOIN [pizza_runner].[pizza_toppings] b
+ON a.toppings =b.topping_id
+)
+SELECT a.[pizza_id], a.topping_name, 
+CASE WHEN b.exclusions IN('null') THEN NULL
+     ELSE b.exclusions END  No_of_exclusion
+INTO #exclusions
+FROM exclusion a
+LEFT JOIN [pizza_runner].[customer_orders] b
+ON a.pizza_id = b.pizza_id;
+
+SELECT *
+FROM #exclusions;
+
+SELECT topping_name, COUNT( CAST( No_of_exclusion AS INT)) exclusion
+FROM (SELECT  pizza_id,CAST(topping_name AS varchar(MAX)) AS topping_name,
+value  No_of_exclusion
+FROM #exclusions
+CROSS APPLY STRING_SPLIT(No_of_exclusion, ',')
+where  No_of_exclusion is not null AND No_of_exclusion != '') a
+GROUP BY topping_name
+ORDER BY COUNT( CAST( No_of_exclusion AS INT)) DESC
+```
