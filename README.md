@@ -23,18 +23,19 @@ He has prepared an entity relationship diagram of his database design but requir
 
 ### SECTION A
 
-```
---1. How many pizzas were ordered?
+**--1. How many pizzas were ordered?**
 
+
+```
 SELECT COUNT([pizza_id]) AS Total_orders
 FROM [pizza_runner].[customer_orders]
 
 ```
 ![Screenshot (198)](https://user-images.githubusercontent.com/109418747/194529713-1ac7e47f-5e69-43a6-90db-00e0591aa267.png)
 
+**--2. How many unique customer orders were made?**
 
 ```
---2. How many unique customer orders were made?
 
 SELECT COUNT(DISTINCT [order_id]) Unique_orders
 FROM[pizza_runner].[customer_orders]
@@ -43,8 +44,9 @@ FROM[pizza_runner].[customer_orders]
 
 ![Screenshot (199)](https://user-images.githubusercontent.com/109418747/194527396-a7ad2799-5d93-4b57-9779-1ad9a092b8fb.png)
 
+**--3. How many successful orders were delivered by each runner?**
+
 ```
---3. How many successful orders were delivered by each runner?
 
 SELECT COUNT([order_id]) Orders,[runner_id]
 FROM [pizza_runner].[runner_orders]
@@ -56,10 +58,10 @@ GROUP BY [runner_id];
 ![Screenshot (200)](https://user-images.githubusercontent.com/109418747/194527606-c19a31b3-d423-4538-8d31-cd6c53346290.png)
 
 
+
+**--4.How many of each type of pizza was delivered?**
+
 ```
-
---4.How many of each type of pizza was delivered?
-
 SELECT a.[pizza_id],
       COUNT (b.order_id) count
 FROM [pizza_runner].[customer_orders] a
@@ -72,10 +74,10 @@ GROUP BY a.pizza_id;
 
 ![Screenshot (201)](https://user-images.githubusercontent.com/109418747/194527813-fc5086a8-9e57-4f1a-9d25-2eec521d16b0.png)
 
+
+**--5.How many Vegetarian and Meatlovers were ordered by each customer?**
+
 ```
-
---5.How many Vegetarian and Meatlovers were ordered by each customer?
-
 WITH pizza AS(SELECT [order_id],[customer_id],[pizza_id],
 CASE WHEN [pizza_id]= 1 THEN 1
 ELSE 0 END meatlover,
@@ -381,4 +383,68 @@ CROSS APPLY STRING_SPLIT(No_of_exclusion, ',')
 where  No_of_exclusion is not null AND No_of_exclusion != '') a
 GROUP BY topping_name
 ORDER BY COUNT( CAST( No_of_exclusion AS INT)) DESC
+
+```
+
+```
+---4.Generate an order item for each record in the customers_orders table in the format of one of the following:
+    --Meat Lovers
+    --Meat Lovers - Exclude Beef
+    --Meat Lovers - Extra Bacon
+    --Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+
+ 
+     WITH orders AS(
+     SELECT *, ROW_NUMBER() OVER(ORDER BY [order_id]) AS row_index
+      FROM pizza_runner.customer_orders),
+
+     exclusions AS (
+      SELECT order_id, pizza_id, row_index, topping_name, exclusions
+      FROM (
+        SELECT * FROM (
+    	    SELECT order_id, pizza_id, row_index, VALUE exclusions
+            FROM orders
+            CROSS APPLY STRING_SPLIT(exclusions,',')
+        ) AS tmp
+        WHERE exclusions NOT IN ('null' ,'')
+      ) AS temp_table
+      LEFT JOIN pizza_runner.pizza_toppings p
+      ON CAST(temp_table.exclusions AS INTEGER) = p.topping_id
+    ),
+     extras AS (
+      SELECT order_id, pizza_id, row_index, topping_name, extras
+      FROM (
+        SELECT * FROM (
+    	    SELECT order_id, pizza_id, row_index, VALUE extras
+            FROM orders
+            CROSS APPLY STRING_SPLIT(extras,',')
+        ) AS tmp
+        WHERE extras NOT IN ('null' ,'')
+      ) AS temp_table
+      LEFT JOIN pizza_runner.pizza_toppings p
+      ON CAST(temp_table.extras AS INTEGER) = p.topping_id),
+      exclusions_toppings AS (
+      SELECT row_index, 
+      STRING_AGG(CAST(topping_name AS varchar(max)), ', ') AS exclusions 
+      FROM exclusions
+      GROUP BY row_index
+    ),
+      extras_toppings AS (
+      SELECT row_index, 
+      STRING_AGG(CAST(topping_name AS varchar(max)), ', ') AS extras 
+      FROM extras
+      GROUP BY row_index
+    ) 
+    SELECT a.order_id, CONCAT(a.pizza_name, a.extras, a.exclusions)
+    FROM
+    (SELECT order_id, 
+           p.pizza_name, 
+           CASE WHEN e.extras IS NULL THEN '' ELSE CONCAT(' -extra ', e.extras) END extras,
+           CASE WHEN t.exclusions IS NULL THEN '' ELSE CONCAT(' -exclude ', t.exclusions) END exclusions
+    FROM orders o
+    LEFT JOIN pizza_runner.pizza_names p ON o.pizza_id =p.pizza_id
+    LEFT JOIN extras_toppings e  ON o.row_index= e.row_index
+    LEFT JOIN exclusions_toppings t ON o.row_index= t.row_index) a
+    
+```
 ```
