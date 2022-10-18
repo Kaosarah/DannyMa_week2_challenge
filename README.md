@@ -447,4 +447,6 @@ ORDER BY COUNT( CAST( No_of_exclusion AS INT)) DESC
     LEFT JOIN exclusions_toppings t ON o.row_index= t.row_index) a
     
 ```
-```
+
+![Screenshot (224)](https://user-images.githubusercontent.com/109418747/196418836-7ed7dd28-ca53-454d-ac22-fb1a477bcdbe.png)
+
