@@ -450,3 +450,49 @@ ORDER BY COUNT( CAST( No_of_exclusion AS INT)) DESC
 
 ![Screenshot (224)](https://user-images.githubusercontent.com/109418747/196418836-7ed7dd28-ca53-454d-ac22-fb1a477bcdbe.png)
 
+
+```
+ --6. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
+SELECT 
+SUM(CASE WHEN CAST([pizza_name] AS VARCHAR(MAX)) = 'Meatlovers' 
+THEN 12 ELSE 10 END) AS Cost
+FROM(
+SELECT a.[pizza_id],a.order_id,b.[pizza_name]
+FROM [pizza_runner].[customer_orders] a
+LEFT JOIN [pizza_runner].[pizza_names] b
+ON a.pizza_id = b.pizza_id) a
+LEFT JOIN [pizza_runner].[runner_orders] b
+ON a.order_id = b.order_id
+WHERE b.duration != 'null';
+
+```
+
+![Screenshot (244)](https://user-images.githubusercontent.com/109418747/199657589-b8c622d4-6f39-4368-9c26-e83eccdbd5bb.png)
+
+```
+
+--6. What if there was an additional $1 charge for any pizza extras
+
+WITH extracharges AS (SELECT a.extras,
+CASE WHEN a.extras IN ('', 'null', 'NaN', NULL) THEN 0
+WHEN a.extras IS NULL THEN 0
+WHEN a.extras ='1, 4' THEN 2
+ELSE 1 END AS extra,
+CASE WHEN CAST([pizza_name] AS VARCHAR(MAX)) = 'Meatlovers' 
+THEN 12 ELSE 10 END price
+FROM(
+SELECT a.[pizza_id],a.order_id,b.[pizza_name],
+a.extras
+FROM [pizza_runner].[customer_orders] a
+LEFT JOIN [pizza_runner].[pizza_names] b
+ON a.pizza_id = b.pizza_id) a
+LEFT JOIN [pizza_runner].[runner_orders] b
+ON a.order_id = b.order_id
+WHERE b.duration != 'null')
+SELECT SUM(price) +SUM(extra) Total_price_with_extras
+FROM extracharges
+```
+
+![Screenshot (243)](https://user-images.githubusercontent.com/109418747/199657018-3c9179e8-10bc-48f0-b239-505e8f5d1dc1.png)
+
+
